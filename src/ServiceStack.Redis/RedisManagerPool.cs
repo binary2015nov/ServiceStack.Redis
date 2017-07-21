@@ -82,8 +82,6 @@ namespace ServiceStack.Redis
 
             clients = new RedisClient[MaxPoolSize];
             poolIndex = 0;
-
-            JsConfig.InitStatics();
         }
 
         public void FailoverTo(params string[] readWriteHosts)

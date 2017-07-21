@@ -508,7 +508,7 @@ namespace ServiceStack.Redis
 
         public string GetStatsDescription()
         {
-            var sb = StringBuilderCache.Allocate();
+            var sb = new StringBuilder();
             sb.AppendLine("===============");
             sb.AppendLine("Current Status: " + GetStatus());
             sb.AppendLine("Times Started: " + Interlocked.CompareExchange(ref timesStarted, 0, 0));
@@ -516,7 +516,7 @@ namespace ServiceStack.Redis
             sb.AppendLine("Num of Continuous Errors: " + Interlocked.CompareExchange(ref noOfContinuousErrors, 0, 0));
             sb.AppendLine("Last ErrorMsg: " + lastExMsg);
             sb.AppendLine("===============");
-            return StringBuilderCache.ReturnAndFree(sb);
+            return sb.ToString();
         }
 
         public virtual void Dispose()

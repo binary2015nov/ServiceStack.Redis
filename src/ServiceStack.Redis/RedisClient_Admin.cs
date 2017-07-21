@@ -32,7 +32,7 @@ namespace ServiceStack.Redis
 
         public string GetConfig(string configItem)
         {
-            var sb = StringBuilderCache.Allocate();
+            var sb = new StringBuilder();
             var byteArray = base.ConfigGet(configItem);
             const int startAt = 1; //skip repeating config name
             for (var i = startAt; i < byteArray.Length; i++)
@@ -43,7 +43,7 @@ namespace ServiceStack.Redis
 
                 sb.Append(bytes.FromUtf8Bytes());
             }
-            return StringBuilderCache.ReturnAndFree(sb);
+            return sb.ToString();
         }
 
         public void SaveConfig()

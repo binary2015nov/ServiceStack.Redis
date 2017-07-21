@@ -47,7 +47,7 @@ namespace ServiceStack.Redis
 
         public override string ToString()
         {
-            var sb = StringBuilderCache.Allocate();
+            var sb = new StringBuilder();
             sb.AppendFormat("{0}:{1}", Host, Port);
 
             var args = new List<string>();
@@ -75,7 +75,7 @@ namespace ServiceStack.Redis
             if (args.Count > 0)
                 sb.Append("?").Append(string.Join("&", args));
             
-            return StringBuilderCache.ReturnAndFree(sb);
+            return sb.ToString();
         }
 
         protected bool Equals(RedisEndpoint other)

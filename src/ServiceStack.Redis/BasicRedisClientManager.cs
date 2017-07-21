@@ -80,9 +80,6 @@ namespace ServiceStack.Redis
             RedisResolver = new RedisResolver(readWriteHosts, readOnlyHosts);
 
             this.OnFailover = new List<Action<IRedisClientsManager>>();
-
-            JsConfig.InitStatics();
-
             this.OnStart();
         }
 

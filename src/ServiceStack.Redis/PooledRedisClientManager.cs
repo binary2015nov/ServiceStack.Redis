@@ -140,8 +140,6 @@ namespace ServiceStack.Redis
                 ? poolTimeOutSeconds * 1000
                 : 2000; //Default Timeout
 
-            JsConfig.InitStatics();
-
             if (this.Config.AutoStart)
             {
                 this.OnStart();
