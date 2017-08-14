@@ -2,6 +2,7 @@
 using ServiceStack.Logging;
 using ServiceStack.Redis;
 using ServiceStack.Text;
+using ServiceStack;
 
 namespace ConsoleTests
 {

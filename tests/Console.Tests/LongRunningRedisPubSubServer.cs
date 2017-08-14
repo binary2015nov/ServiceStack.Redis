@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
+using ServiceStack;
 using ServiceStack.Redis;
 using ServiceStack.Text;
-using Timer = System.Timers.Timer;
 
 namespace ConsoleTests
 {
@@ -31,7 +30,7 @@ namespace ConsoleTests
             Manager = new RedisManagerPool(ipAddress);
             StartedAt = DateTime.UtcNow;
 
-            var q = new Timer { Interval = 1000 };
+            var q = new System.Timers.Timer { Interval = 1000 };
             q.Elapsed += OnInterval;
             q.Enabled = true;
 
@@ -85,7 +84,7 @@ namespace ConsoleTests
             }
         }
 
-        private static void OnInterval(object sender, ElapsedEventArgs e)
+        private static void OnInterval(object sender, System.Timers.ElapsedEventArgs e)
         {
             Task.Factory.StartNew(PublishMessage);
         }

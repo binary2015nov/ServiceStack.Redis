@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ServiceStack;
 using ServiceStack.Redis;
 using ServiceStack.Redis.Generic;
 using ServiceStack.Text;
