@@ -83,7 +83,6 @@ namespace ServiceStack.Redis.Tests
             {
                 Access20Types();
                 Access20Types();
-
                 client.As<T21>();
             }
         }

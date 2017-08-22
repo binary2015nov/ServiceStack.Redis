@@ -387,7 +387,7 @@ namespace ServiceStack.Redis.Tests
                 }
                 catch (TimeoutException ex)
                 {
-                    Assert.That(ex.Message, Is.StringStarting("Redis Timeout expired."));
+                    Assert.That(ex.Message, Does.StartWith("Redis Timeout expired."));
                 }
 
                 var slaves = 4.Times(i => manager.GetReadOnlyClient());
@@ -399,7 +399,7 @@ namespace ServiceStack.Redis.Tests
                 }
                 catch (TimeoutException ex)
                 {
-                    Assert.That(ex.Message, Is.StringStarting("Redis Timeout expired."));
+                    Assert.That(ex.Message, Does.StartWith("Redis Timeout expired."));
                 }
             }
         }
@@ -454,7 +454,7 @@ namespace ServiceStack.Redis.Tests
                     hostCountMap[client.Host] = ++hostCount;
                 }
 
-                Debug.WriteLine(String.Format("Client '{0}' is using '{1}'", clientNo, client.Host));
+                Debug.WriteLine($"Client '{clientNo}' is using '{client.Host}'");
             }
         }
 
