@@ -30,5 +30,4 @@ namespace ServiceStack.Redis.Tests
             Assert.AreEqual(testFloat, ser.Deserialize(serialized));
         }
     }
-
 }

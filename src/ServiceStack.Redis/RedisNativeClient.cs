@@ -795,7 +795,7 @@ namespace ServiceStack.Redis
         public bool PExpireAt(string key, long unixTimeMs)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.PExpireAt, key.ToUtf8Bytes(), unixTimeMs.ToUtf8Bytes()) == Success;
         }
@@ -803,7 +803,7 @@ namespace ServiceStack.Redis
         public long Ttl(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.Ttl, key.ToUtf8Bytes());
         }
@@ -811,7 +811,7 @@ namespace ServiceStack.Redis
         public long PTtl(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.PTtl, key.ToUtf8Bytes());
         }
