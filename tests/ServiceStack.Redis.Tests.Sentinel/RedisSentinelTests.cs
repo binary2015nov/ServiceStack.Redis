@@ -18,7 +18,7 @@ namespace ServiceStack.Redis.Tests.Sentinel
             LogManager.LogFactory = new ConsoleLogFactory(debugEnabled:true);
         }
 
-        [OneTimeSetUp]
+        [OneTimeTearDown]
         public void OnAfterTestFixture()
         {
             ShutdownAllRedisSentinels();
