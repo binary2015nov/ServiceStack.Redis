@@ -505,7 +505,7 @@ namespace ServiceStack.Redis
             if (this.NamespacePrefix != null)
                 client.NamespacePrefix = NamespacePrefix;
             if (Db != null && client.Db != Db) //Reset database to default if changed
-                client.ChangeDb(Db.Value);
+                client.Select(Db.Value);
             return client;
         }
 
@@ -754,7 +754,7 @@ namespace ServiceStack.Redis
             if (redisClient == null) return;
             try
             {
-                redisClient.DisposeConnection();
+                redisClient.Dispose();
             }
             catch (Exception ex)
             {

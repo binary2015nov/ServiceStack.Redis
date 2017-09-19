@@ -2,8 +2,7 @@
 
 namespace ServiceStack.Redis.Tests
 {
-    public class BasicRediscClientManagerTests
-        : RedisClientTestsBase
+    public class BasicRediscClientManagerTests : RedisClientTestsBase
     {
         [Test]
         public void Can_select_db()

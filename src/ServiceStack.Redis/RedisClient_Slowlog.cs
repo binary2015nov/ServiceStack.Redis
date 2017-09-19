@@ -18,8 +18,7 @@ using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
-    public partial class RedisClient
-        : IRedisClient
+    public partial class RedisClient : IRedisClient
     {
         public IEnumerable<SlowlogItem> GetSlowlog(int? numberOfRecords = null)
         {

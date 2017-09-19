@@ -2,8 +2,8 @@
 using System.Threading;
 using ServiceStack;
 using ServiceStack.Logging;
+using ServiceStack.Messaging.Redis;
 using ServiceStack.Redis;
-using ServiceStack.Redis.Messaging;
 using ServiceStack.Text;
 
 namespace TestMqHost
@@ -68,7 +68,7 @@ namespace TestMqHost
                 using (var client = (RedisClient)clientManager.GetClient())
                 {
                     client.SetConfig("timeout", "1");
-                    var clientAddrs = client.GetClientList().ConvertAll(x => x["addr"]);
+                    var clientAddrs = client.GetClientsInfo().ConvertAll(x => x["addr"]);
                     log.InfoFormat("Killing clients: {0}...", clientAddrs.Dump());
 
                     try

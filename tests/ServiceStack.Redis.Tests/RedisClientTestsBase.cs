@@ -1,23 +1,15 @@
-using System;
-using System.Diagnostics;
 using System.Text;
 using NUnit.Framework;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis.Tests
 {
-    public class RedisClientTestsBase
+    public abstract class RedisClientTestsBase
     {
-        protected string CleanMask = null;
+        protected string CleanMask;
         protected RedisClient Redis;
 
-        protected void Log(string fmt, params object[] args)
-        {
-            Debug.WriteLine("{0}", string.Format(fmt, args).Trim());
-        }
-
         [OneTimeSetUp]
-        public virtual void OnBeforeTestFixture()
+        public virtual void TestFixtureSetUp()
         {
             RedisClient.NewFactoryFn = () => new RedisClient(TestConfig.SingleHost);
             using (var redis = RedisClient.New())
@@ -27,9 +19,7 @@ namespace ServiceStack.Redis.Tests
         }
 
         [OneTimeTearDown]
-        public virtual void OnAfterTestFixture()
-        {
-        }
+        public virtual void TestFixtureTearDown() { }
 
         [SetUp]
         public virtual void OnBeforeEachTest()

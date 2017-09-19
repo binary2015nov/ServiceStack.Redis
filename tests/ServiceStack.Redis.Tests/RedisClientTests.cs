@@ -12,8 +12,7 @@ using ServiceStack.Text;
 namespace ServiceStack.Redis.Tests
 {
     [TestFixture, Category("Integration")]
-    public class RedisClientTests
-        : RedisClientTestsBase
+    public class RedisClientTests : RedisClientTestsBase
     {
         const string Value = "Value";
 
@@ -398,7 +397,7 @@ namespace ServiceStack.Redis.Tests
         [Test]
         public void Can_Append()
         {
-            const string expectedString = "Hello, " + "World!";
+            string expectedString = "Hello, " + "World!";
             Redis.SetValue("key", "Hello, ");
             var currentLength = Redis.AppendToValue("key", "World!");
 
@@ -411,7 +410,7 @@ namespace ServiceStack.Redis.Tests
         [Test]
         public void Can_GetRange()
         {
-            const string helloWorld = "Hello, World!";
+            var helloWorld = "Hello, World!";
             Redis.SetValue("key", helloWorld);
 
             var fromIndex = "Hello, ".Length;
@@ -574,15 +573,15 @@ namespace ServiceStack.Redis.Tests
                 try
                 {
                     redis.Set(key, val);
-                    redis.ChangeDb(2);
+                    redis.Select(2);
                     Assert.That(redis.Get<int>(key), Is.EqualTo(0));
-                    redis.ChangeDb(1);
+                    redis.Select(1);
                     Assert.That(redis.Get<int>(key), Is.EqualTo(val));
                     redis.Dispose();
                 }
                 finally
                 {
-                    redis.ChangeDb(1);
+                    redis.Select(1);
                     redis.Del(key);
                 }
             }

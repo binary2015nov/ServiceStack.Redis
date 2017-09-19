@@ -8,7 +8,6 @@ using ServiceStack.Text;
 
 namespace ServiceStack.Redis.Tests.Examples
 {
-
     /// <summary>
     /// A complete, self-contained example showing how to create a basic blog application using Redis.
     /// </summary>

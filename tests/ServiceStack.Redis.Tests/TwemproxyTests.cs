@@ -1,9 +1,8 @@
 ﻿using NUnit.Framework;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis.Tests
 {
-    [TestFixture, Explicit]
+    [TestFixture, Ignore("Twemproxy")]
     public class TwemproxyTests
     {
         [Test]

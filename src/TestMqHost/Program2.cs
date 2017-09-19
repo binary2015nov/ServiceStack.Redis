@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using ServiceStack;
+using ServiceStack.Messaging.Redis;
 using ServiceStack.Redis;
-using ServiceStack.Redis.Messaging;
 using ServiceStack.Text;
 
 namespace TestMqHost
 {
     class Program2
     {
-
         static void Main(string[] args)
         {
             var clientManager = new PooledRedisClientManager(new[] { "localhost" })

@@ -24,8 +24,7 @@ namespace ServiceStack.Redis
     {
         public IHasNamed<IRedisSortedSet> SortedSets { get; set; }
 
-        internal class RedisClientSortedSets
-            : IHasNamed<IRedisSortedSet>
+        internal class RedisClientSortedSets : IHasNamed<IRedisSortedSet>
         {
             private readonly RedisClient client;
 
@@ -51,7 +50,7 @@ namespace ServiceStack.Redis
 
         public static double GetLexicalScore(string value)
         {
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
                 return 0;
 
             var lexicalValue = 0;

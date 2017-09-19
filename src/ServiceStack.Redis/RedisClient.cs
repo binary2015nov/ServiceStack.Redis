@@ -30,76 +30,48 @@ namespace ServiceStack.Redis
     /// e.g. RedisClient.Lists => IList[string]
     ///		 RedisClient.Sets => ICollection[string]
     /// </summary>
-    public partial class RedisClient
-        : RedisNativeClient, IRedisClient, IRemoveByPattern // IRemoveByPattern is implemented in this file.
+    public partial class RedisClient : RedisNativeClient, IRedisClient, IRemoveByPattern // IRemoveByPattern is implemented in this file.
     {
-        public RedisClient()
+        private static Func<object, Dictionary<string, string>> convertToHashFn;
+        public static Func<object, Dictionary<string, string>> ConvertToHashFn
         {
-            Init();
+            get { return convertToHashFn ?? (convertToHashFn = x => x.ToJson().FromJson<Dictionary<string, string>>()); }
+            set { convertToHashFn = value; }
         }
 
-        internal static HashSet<Type> __uniqueTypes = new HashSet<Type>();
-
-        public static Func<RedisClient> NewFactoryFn = () => new RedisClient();
-
-        public static Func<object, Dictionary<string, string>> ConvertToHashFn =
-            x => x.ToJson().FromJson<Dictionary<string, string>>();
+        private static Func<RedisClient> newFactoryFn;
+        public static Func<RedisClient> NewFactoryFn
+        {
+            get { return newFactoryFn ?? (newFactoryFn = () => new RedisClient()); }
+            set { newFactoryFn = value; }
+        }
 
         /// <summary>
         /// Creates a new instance of the Redis Client from NewFactoryFn. 
         /// </summary>
-        public static RedisClient New()
-        {
-            return NewFactoryFn();
-        }
+        public static RedisClient New() => NewFactoryFn();
 
-        public RedisClient(string host)
-            : base(host)
-        {
-            Init();
-        }
+        public RedisClient() => Init();
 
-        public RedisClient(RedisEndpoint config)
-            : base(config)
-        {
-            Init();
-        }
-
-        public RedisClient(string host, int port)
-            : base(host, port)
-        {
-            Init();
-        }
+        public RedisClient(string host) : base(host) => Init();
 
         public RedisClient(string host, int port, string password = null, long db = RedisConfig.DefaultDb)
-            : base(host, port, password, db)
-        {
-            Init();
-        }
+            : base(host, port, password, db) => Init();
 
-        public RedisClient(Uri uri)
-            : base(uri.Host, uri.Port)
-        {
-            var password = !string.IsNullOrEmpty(uri.UserInfo) ? uri.UserInfo.Split(':').Last() : null;
-            Password = password;
-            Init();
-        }
+        public RedisClient(Uri uri) 
+            : base(uri.Host, uri.Port, string.IsNullOrEmpty(uri.UserInfo) ? uri.UserInfo.Split(':').Last() : null) => Init();
 
-        public void Init()
+        public RedisClient(RedisEndpoint redisEndpoint) : base(redisEndpoint) => Init();
+
+        private void Init()
         {
             this.Lists = new RedisClientLists(this);
+            this.Hashes = new RedisClientHashes(this);
             this.Sets = new RedisClientSets(this);
             this.SortedSets = new RedisClientSortedSets(this);
-            this.Hashes = new RedisClientHashes(this);
         }
 
-        public string this[string key]
-        {
-            get { return GetValue(key); }
-            set { SetValue(key, value); }
-        }
-
-        public override void OnConnected() { }
+        public string this[string key] { get { return GetValue(key); } set { SetValue(key, value); } }
 
         public RedisText Custom(params object[] cmdWithArgs)
         {
@@ -141,11 +113,7 @@ namespace ServiceStack.Redis
 
         public void SetValue(string key, string value)
         {
-            var bytesValue = value != null
-                ? value.ToUtf8Bytes()
-                : null;
-
-            base.Set(key, bytesValue);
+            base.Set(key, value.ToUtf8Bytes());
         }
 
         public bool SetValue(byte[] key, byte[] value, TimeSpan expireIn)
@@ -164,9 +132,7 @@ namespace ServiceStack.Redis
 
         public void SetValue(string key, string value, TimeSpan expireIn)
         {
-            var bytesValue = value != null
-                ? value.ToUtf8Bytes()
-                : null;
+            var bytesValue = value.ToUtf8Bytes();
 
             if (AssertServerVersionNumber() >= 2610)
             {
@@ -263,10 +229,7 @@ namespace ServiceStack.Redis
 
         public string GetValue(string key)
         {
-            var bytes = Get(key);
-            return bytes == null
-                ? null
-                : bytes.FromUtf8Bytes();
+            return Get(key).FromUtf8Bytes();
         }
 
         public string GetAndSetValue(string key, string value)
@@ -400,9 +363,7 @@ namespace ServiceStack.Redis
         {
             try
             {
-                var typedClient = new RedisTypedClient<T>(this);
-                LicenseUtils.AssertValidUsage(LicenseFeature.Redis, QuotaType.Types, __uniqueTypes.Count);
-                return typedClient;
+                return new RedisTypedClient<T>(this);
             }
             catch (TypeInitializationException ex)
             {

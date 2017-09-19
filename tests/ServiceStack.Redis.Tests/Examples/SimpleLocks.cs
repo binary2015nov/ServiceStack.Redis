@@ -122,7 +122,6 @@ namespace ServiceStack.Redis.Tests.Examples
                     try
                     {
                         Console.WriteLine("About to process " + clientNo);
-                        //var redisClient = new RedisClient("xxxx.redis.cache.windows.net", 6379, "xxxx");
                         var redisClient = new RedisClient(TestConfig.SingleHost, 6379);
 
                         using (redisClient.AcquireLock("testlock1", TimeSpan.FromMinutes(3)))

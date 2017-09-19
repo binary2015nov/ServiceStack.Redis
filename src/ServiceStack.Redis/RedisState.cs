@@ -12,7 +12,7 @@ namespace ServiceStack.Redis
     /// </summary>
     internal static class RedisState
     {
-        private static ILog log = LogManager.GetLogger(typeof(RedisState));
+        private readonly static ILog Logger = LogManager.GetLogger(typeof(RedisState));
 
         internal static long TotalCommandsSent = 0;
         internal static long TotalFailovers = 0;
@@ -37,7 +37,7 @@ namespace ServiceStack.Redis
 
             if (RedisConfig.DeactivatedClientsExpiry == TimeSpan.Zero)
             {
-                client.DisposeConnection();
+                client.Dispose();
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace ServiceStack.Redis
             client.DeactivatedAt = deactivatedAt;
 
             if (!DeactivatedClients.TryAdd(client, deactivatedAt))
-                client.DisposeConnection();
+                client.Dispose();
         }
 
         internal static void DisposeExpiredClients()
@@ -63,10 +63,10 @@ namespace ServiceStack.Redis
                     if (now - entry.Value <= RedisConfig.DeactivatedClientsExpiry)
                         continue;
 
-                    if (log.IsDebugEnabled)
-                        log.Debug("Disposed Deactivated Client: {0}".Fmt(entry.Key.GetHostString()));
+                    if (Logger.IsDebugEnabled)
+                        Logger.Debug("Disposed Deactivated Client: {0}".Fmt(entry.Key.GetHostString()));
 
-                    entry.Key.DisposeConnection();
+                    entry.Key.Dispose();
                     removeDisposed.Add(entry.Key);
                 }
                 catch
@@ -94,10 +94,10 @@ namespace ServiceStack.Redis
             DeactivatedClients.Clear();
             foreach (var client in allClients)
             {
-                if (log.IsDebugEnabled)
-                    log.Debug("Disposed Deactivated Client (All): {0}".Fmt(client.GetHostString()));
+                if (Logger.IsDebugEnabled)
+                    Logger.Debug("Disposed Deactivated Client (All): {0}".Fmt(client.GetHostString()));
 
-                client.DisposeConnection();
+                client.Dispose();
             }
         }
     }

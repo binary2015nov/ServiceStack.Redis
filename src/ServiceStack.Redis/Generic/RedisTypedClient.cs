@@ -21,30 +21,29 @@ using ServiceStack.Text;
 
 namespace ServiceStack.Redis.Generic
 {
+    public abstract class RedisTypedClient
+    {
+        internal protected static HashSet<Type> __uniqueTypes = new HashSet<Type>();
+    }
+
     /// <summary>
     /// Allows you to get Redis value operations to operate against POCO types.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public partial class RedisTypedClient<T>
-        : IRedisTypedClient<T>
+    public partial class RedisTypedClient<T> : RedisTypedClient, IRedisTypedClient<T>
     {
         static RedisTypedClient()
         {
-            Redis.RedisClient.__uniqueTypes.Add(typeof(T));
+            __uniqueTypes.Add(typeof(T));
+            LicenseUtils.AssertValidUsage(LicenseFeature.Redis, QuotaType.Types, __uniqueTypes.Count);
         }
 
         readonly ITypeSerializer<T> serializer = new JsonSerializer<T>();
+
         private readonly RedisClient client;
+        public IRedisClient RedisClient { get { return client; } }
 
-        public IRedisClient RedisClient
-        {
-            get { return client; }
-        }
-
-        public IRedisNativeClient NativeClient
-        {
-            get { return client; }
-        }
+        public IRedisNativeClient NativeClient { get { return client; } }
 
         /// <summary>
         /// Use this to share the same redis connection with another

@@ -17,8 +17,7 @@ using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
-    public partial class RedisClient
-        : IRedisClient
+    public partial class RedisClient : IRedisClient
     {
         public void SetConfig(string configItem, string value)
         {

@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using ServiceStack.Logging;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
     public class RedisResolver : IRedisResolver, IRedisResolverExtended
     {
-        static ILog log = LogManager.GetLogger(typeof(RedisResolver));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(RedisResolver));
 
         public Func<RedisEndpoint, RedisClient> ClientFactory { get; set; }
 
@@ -31,11 +30,9 @@ namespace ServiceStack.Redis
             get { return slaves; }
         }
 
-        public RedisResolver()
-            : this(TypeConstants<RedisEndpoint>.EmptyArray, TypeConstants<RedisEndpoint>.EmptyArray) {}
+        public RedisResolver() : this(new[] { RedisConfig.DefaultHost }, TypeConstants.EmptyStringArray) { }
 
-        public RedisResolver(IEnumerable<string> masters, IEnumerable<string> slaves)
-            : this(masters.ToRedisEndPoints(), slaves.ToRedisEndPoints()){}
+        public RedisResolver(IEnumerable<string> masters, IEnumerable<string> slaves) : this(masters.ToRedisEndPoints(), slaves.ToRedisEndPoints()) { }
 
         public RedisResolver(IEnumerable<RedisEndpoint> masters, IEnumerable<RedisEndpoint> slaves)
         {
@@ -52,14 +49,14 @@ namespace ServiceStack.Redis
         public virtual void ResetMasters(List<RedisEndpoint> newMasters)
         {
             if (newMasters == null || newMasters.Count == 0)
-                throw new Exception("Must provide at least 1 master");
+                throw new ArgumentException("Must provide at least 1 master", nameof(newMasters));
 
             masters = newMasters.ToArray();
             ReadWriteHostsCount = masters.Length;
             newMasters.Each(x => allHosts.Add(x));
 
-            if (log.IsDebugEnabled)
-                log.Debug("New Redis Masters: " + string.Join(", ", masters.Map(x => x.GetHostString())));
+            if (Logger.IsDebugEnabled)
+                Logger.Debug("New Redis Masters: " + string.Join(", ", masters.Map(x => x.GetHostString())));
         }
 
         public virtual void ResetSlaves(IEnumerable<string> hosts)
@@ -73,13 +70,13 @@ namespace ServiceStack.Redis
             ReadOnlyHostsCount = slaves.Length;
             newSlaves.Each(x => allHosts.Add(x));
 
-            if (log.IsDebugEnabled)
-                log.Debug("New Redis Slaves: " + string.Join(", ", slaves.Map(x => x.GetHostString())));
+            if (Logger.IsDebugEnabled)
+                Logger.Debug("New Redis Slaves: " + string.Join(", ", slaves.Map(x => x.GetHostString())));
         }
 
-        public virtual RedisClient CreateRedisClient(RedisEndpoint config, bool master)
+        public virtual RedisClient CreateRedisClient(RedisEndpoint redisEP, bool master)
         {
-            var client = ClientFactory(config);
+            var client = ClientFactory(redisEP);
 
             if (master && RedisConfig.VerifyMasterConnections)
             {
@@ -87,7 +84,7 @@ namespace ServiceStack.Redis
                 if (role != RedisServerRole.Master)
                 {
                     Interlocked.Increment(ref RedisState.TotalInvalidMasters);
-                    log.Error("Redis Master Host '{0}' is {1}. Resetting allHosts...".Fmt(config.GetHostString(), role));
+                    Logger.Error("Redis Master Host '{0}' is {1}. Resetting allHosts...".Fmt(redisEP.GetHostString(), role));
                     var newMasters = new List<RedisEndpoint>();
                     var newSlaves = new List<RedisEndpoint>();
                     RedisClient masterClient = null;
@@ -118,7 +115,7 @@ namespace ServiceStack.Redis
                     {
                         Interlocked.Increment(ref RedisState.TotalNoMastersFound);
                         var errorMsg = "No master found in: " + string.Join(", ", allHosts.Map(x => x.GetHostString()));
-                        log.Error(errorMsg);
+                        Logger.Error(errorMsg);
                         throw new Exception(errorMsg);
                     }
 

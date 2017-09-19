@@ -1,34 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Text;
-using ServiceStack.IO;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
-    public class RedisEndpoint : IEndpoint
+    public sealed class RedisEndpoint
     {
-        public RedisEndpoint()
+        public RedisEndpoint() : this(RedisConfig.DefaultHost, RedisConfig.DefaultPort) { }
+
+        public RedisEndpoint(string host, int port, string password = null, long db = RedisConfig.DefaultDb)
         {
-            Host = RedisConfig.DefaultHost;
-            Port = RedisConfig.DefaultPort;
-            Db = RedisConfig.DefaultDb;
+            this.Host = host;
+            this.Port = port;
+            this.Password = password;
+            this.Db = db;
 
             ConnectTimeout = RedisConfig.DefaultConnectTimeout;
             SendTimeout = RedisConfig.DefaultSendTimeout;
             ReceiveTimeout = RedisConfig.DefaultReceiveTimeout;
             RetryTimeout = RedisConfig.DefaultRetryTimeout;
             IdleTimeOutSecs = RedisConfig.DefaultIdleTimeOutSecs;
-        }
-
-        public RedisEndpoint(string host, int port, string password = null, long db = RedisConfig.DefaultDb)
-            : this()
-        {
-            this.Host = host;
-            this.Port = port;
-            this.Password = password;
-            this.Db = db;
         }
 
         public string Host { get; set; }

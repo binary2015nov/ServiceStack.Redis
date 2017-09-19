@@ -7,8 +7,7 @@ using ServiceStack.Text;
 namespace ServiceStack.Redis.Tests.Sentinel
 {
     [TestFixture, Category("Integration")]
-    public class RedisSentinelTests
-        : RedisSentinelTestBase
+    public class RedisSentinelTests : RedisSentinelTestBase
     {
         [OneTimeSetUp]
         public void OnBeforeTestFixture()

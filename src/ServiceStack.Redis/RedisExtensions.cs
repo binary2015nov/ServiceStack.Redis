@@ -16,7 +16,6 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Sockets;
 using ServiceStack.Model;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
@@ -31,8 +30,9 @@ namespace ServiceStack.Redis
 
         public static RedisEndpoint ToRedisEndpoint(this string connectionString, int? defaultPort = null)
         {
-            if (connectionString == null)
-                throw new ArgumentNullException("connectionString");
+            if (connectionString.IsNullOrEmpty())
+                throw new ArgumentException("The value of argument can not be null or empty.", nameof(connectionString));
+
             if (connectionString.StartsWith("redis://"))
                 connectionString = connectionString.Substring("redis://".Length);
 

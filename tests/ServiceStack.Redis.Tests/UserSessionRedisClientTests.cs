@@ -12,9 +12,14 @@ namespace ServiceStack.Redis.Tests
     [TestFixture, Category("Integration")]
     public class UserSessionTests
     {
+        [OneTimeSetUp]
+        public void TestFixtureSetUp() => LogManager.LogFactory = new ConsoleLogFactory();
+
+        [OneTimeTearDown]
+        public void TestFixtureTearDown() => LogManager.LogFactory = new NullLogFactory();
+
         static UserSessionTests()
         {
-            LogManager.LogFactory = new ConsoleLogFactory();
         }
 
         //MasterUser master;

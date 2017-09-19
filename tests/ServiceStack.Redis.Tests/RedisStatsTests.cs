@@ -4,23 +4,22 @@ using NUnit.Framework;
 namespace ServiceStack.Redis.Tests
 {
     [TestFixture]
-    public class RedisStatsTests
-        : RedisClientTestsBase
+    public class RedisStatsTests : RedisClientTestsBase
     {
         [OneTimeSetUp]
-        public void OneTimeSetUp()
+        public override void TestFixtureSetUp()
         {
+            base.TestFixtureSetUp();
             RedisConfig.AssumeServerVersion = 2821;
         }
 
-        [Test]
-        [Explicit]
+        [Test, Explicit]
         public void Batch_and_Pipeline_requests_only_counts_as_1_request()
         {
             var reqCount = RedisNativeClient.RequestsPerHour;
 
             var map = new Dictionary<string, string>();
-            10.Times(i => map["key" + i] = "value" + i);
+            10.Times(i => { map["key" + i] = "value" + i; });
 
             Redis.SetValues(map);
 

@@ -77,12 +77,12 @@ namespace ServiceStack.Redis.Tests.Sentinel
 
         public static void StartRedisServer(int port)
         {
-            var exePath = new FileInfo("~/../../src/sentinel/redis/redis-server.exe".MapProjectPath()).FullName;
+            var exePath = new FileInfo("~/../../../src/sentinel/redis/redis-server.exe".MapProjectPath()).FullName;
 #if NETCORE
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 exePath = "redis-server";
 #endif
-            var configDir = "~/../../src/sentinel/redis-{0}/".Fmt(port).MapProjectPath();
+            var configDir = "~/../../../src/sentinel/redis-{0}/".Fmt(port).MapProjectPath();
             var configPath = Path.Combine(configDir, "redis.conf");
 
             File.WriteAllText(configPath,

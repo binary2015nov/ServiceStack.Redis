@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading;
 using ServiceStack.Caching;
 using ServiceStack.Logging;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
@@ -19,7 +18,7 @@ namespace ServiceStack.Redis
         /// <summary>
         /// Default pool size used by every new instance of <see cref="RedisPoolConfig"/>. (default: 40)
         /// </summary>
-        public static int DefaultMaxPoolSize = 40;
+        public const int DefaultMaxPoolSize = 40;
 
         public RedisPoolConfig()
         {
@@ -36,10 +35,9 @@ namespace ServiceStack.Redis
     /// <summary>
     /// Provides thread-safe pooling of redis client connections. All connections are treaded as read and write hosts.
     /// </summary>
-    public partial class RedisManagerPool
-        : IRedisClientsManager, IRedisFailover, IHandleClientDispose, IHasRedisResolver
+    public partial class RedisManagerPool : IRedisClientsManager, IRedisFailover, IHandleClientDispose, IHasRedisResolver
     {
-        private static readonly ILog Log = LogManager.GetLogger(typeof(RedisManagerPool));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(RedisManagerPool));
 
         private const string PoolTimeoutError =
             "Redis Timeout expired. The timeout period elapsed prior to obtaining a connection from the pool. This may have occurred because all pooled connections were in use.";
@@ -68,17 +66,11 @@ namespace ServiceStack.Redis
 
         public RedisManagerPool(IEnumerable<string> hosts, RedisPoolConfig config)
         {
-            if (hosts == null)
-                throw new ArgumentNullException("hosts");
-
             RedisResolver = new RedisResolver(hosts, null);
 
-            if (config == null)
-                config = new RedisPoolConfig();
+            OnFailover = new List<Action<IRedisClientsManager>>();
 
-            this.OnFailover = new List<Action<IRedisClientsManager>>();
-
-            this.MaxPoolSize = config.MaxPoolSize;
+            MaxPoolSize = (config ?? new RedisPoolConfig()).MaxPoolSize;
 
             clients = new RedisClient[MaxPoolSize];
             poolIndex = 0;
@@ -111,7 +103,7 @@ namespace ServiceStack.Redis
                     }
                     catch (Exception ex)
                     {
-                        Log.Error("Error firing OnFailover callback(): ", ex);
+                        Logger.Error("Error firing OnFailover callback(): ", ex);
                     }
                 }
             }
@@ -174,8 +166,8 @@ namespace ServiceStack.Redis
                             clients[inactivePoolIndex] == existingClient;
                         if (inactivePoolIndex == -1 || !stillReserved)
                         {
-                            if (Log.IsDebugEnabled)
-                                Log.Debug("clients[inactivePoolIndex] != existingClient: {0}".Fmt(!stillReserved ? "!stillReserved" : "-1"));
+                            if (Logger.IsDebugEnabled)
+                                Logger.Debug("clients[inactivePoolIndex] != existingClient: {0}".Fmt(!stillReserved ? "!stillReserved" : "-1"));
 
                             Interlocked.Increment(ref RedisState.TotalClientsCreatedOutsidePool);
 
@@ -353,7 +345,7 @@ namespace ServiceStack.Redis
 
         private void AssertValidPool()
         {
-            if (clients.Length < 1)
+            if (clients == null || clients.Length < 1)
                 throw new InvalidOperationException("Need a minimum pool size of 1");
         }
 
@@ -403,7 +395,7 @@ namespace ServiceStack.Redis
             }
             catch (Exception ex)
             {
-                Log.Error("Error when trying to dispose of PooledRedisClientManager", ex);
+                Logger.Error("Error when trying to dispose of PooledRedisClientManager", ex);
             }
 
             RedisState.DisposeAllDeactivatedClients();
@@ -416,11 +408,11 @@ namespace ServiceStack.Redis
             if (redisClient == null) return;
             try
             {
-                redisClient.DisposeConnection();
+                redisClient.Dispose();
             }
             catch (Exception ex)
             {
-                Log.Error(string.Format(
+                Logger.Error(string.Format(
                     "Error when trying to dispose of RedisClient to host {0}:{1}",
                     redisClient.Host, redisClient.Port), ex);
             }

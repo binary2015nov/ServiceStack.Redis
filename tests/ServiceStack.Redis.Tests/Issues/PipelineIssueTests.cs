@@ -4,8 +4,7 @@ using NUnit.Framework;
 namespace ServiceStack.Redis.Tests.Issues
 {
     [TestFixture]
-    public class PipelineIssueTests
-        : RedisClientTestsBase
+    public class PipelineIssueTests : RedisClientTestsBase
     {
         [Test]
         public void Disposing_Client_Clears_Pipeline()
@@ -17,11 +16,10 @@ namespace ServiceStack.Redis.Tests.Issues
                 client.Set("k1", "v1");
                 client.Set("k2", "v2");
                 client.Set("k3", "v3");
-                
                 using (var pipe = client.CreatePipeline())
                 {
                     pipe.QueueCommand(c => c.Get<string>("k1"), p => { throw new Exception(); });
-                    pipe.QueueCommand(c => c.Get<string>("k2"));
+                    //pipe.QueueCommand(c => c.Get<string>("k2"));
 
                     try
                     {

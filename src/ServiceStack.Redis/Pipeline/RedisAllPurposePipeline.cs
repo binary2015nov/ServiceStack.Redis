@@ -10,8 +10,7 @@ namespace ServiceStack.Redis
         /// General purpose pipeline
         /// </summary>
         /// <param name="redisClient"></param>
-        public RedisAllPurposePipeline(RedisClient redisClient)
-            : base(redisClient)
+        public RedisAllPurposePipeline(RedisClient redisClient) : base(redisClient)
         {
             Init();
 
@@ -48,7 +47,7 @@ namespace ServiceStack.Redis
             {
                 // The connection cannot be reused anymore. All queued commands have been sent to redis. Even if a new command is executed, the next response read from the
                 // network stream can be the response of one of the queued commands, depending on when the exception occurred. This response would be invalid for the new command.
-                RedisClient.DisposeConnection();
+                RedisClient.Dispose();
                 throw;
             }
             

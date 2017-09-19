@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ServiceStack.Redis.Tests
 {
-    [TestFixture, Category("Integration")]
+    [TestFixture, Ignore("salves and masters"), Category("Integration")]
     public class PooledRedisClientManagerTests
     {
         [OneTimeSetUp]

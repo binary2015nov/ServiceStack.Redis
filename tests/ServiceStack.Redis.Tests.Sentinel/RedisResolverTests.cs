@@ -6,8 +6,7 @@ using ServiceStack.Text;
 namespace ServiceStack.Redis.Tests.Sentinel
 {
     [TestFixture]
-    public class RedisResolverTests
-        : RedisSentinelTestBase
+    public class RedisResolverTests : RedisSentinelTestBase
     {
         [OneTimeSetUp]
         public void TestFixtureSetUp()
@@ -283,6 +282,15 @@ namespace ServiceStack.Redis.Tests.Sentinel
             }
         }
 
+
+        [Test]
+        public void Can_initalize_ClientManagers_with_no_hosts()
+        {
+            InitializeEmptyRedisManagers(new RedisManagerPool(), MasterHosts, MasterHosts);
+            InitializeEmptyRedisManagers(new PooledRedisClientManager(), MasterHosts, SlaveHosts);
+            InitializeEmptyRedisManagers(new BasicRedisClientManager(), MasterHosts, SlaveHosts);
+        }
+
         private static void InitializeEmptyRedisManagers(IRedisClientsManager redisManager, string[] masters, string[] slaves)
         {
             var hasResolver = (IHasRedisResolver)redisManager;
@@ -299,14 +307,6 @@ namespace ServiceStack.Redis.Tests.Sentinel
                 Assert.That(slave.GetHostString(), Is.EqualTo(slaves[0]));
                 Assert.That(slave.GetValue("KEY"), Is.EqualTo("1"));
             }
-        }
-
-        [Test]
-        public void Can_initalize_ClientManagers_with_no_hosts()
-        {
-            InitializeEmptyRedisManagers(new PooledRedisClientManager(), MasterHosts, SlaveHosts);
-            InitializeEmptyRedisManagers(new RedisManagerPool(), MasterHosts, MasterHosts);
-            InitializeEmptyRedisManagers(new BasicRedisClientManager(), MasterHosts, SlaveHosts);
         }
     }
 }

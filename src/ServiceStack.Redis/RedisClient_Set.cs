@@ -13,21 +13,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ServiceStack.Common;
 using ServiceStack.Model;
 using ServiceStack.Redis.Generic;
 using ServiceStack.Redis.Pipeline;
-using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
-    public partial class RedisClient
-        : IRedisClient
+    public partial class RedisClient : IRedisClient
     {
         public IHasNamed<IRedisSet> Sets { get; set; }
 
-        internal class RedisClientSets
-            : IHasNamed<IRedisSet>
+        internal class RedisClientSets : IHasNamed<IRedisSet>
         {
             private readonly RedisClient client;
 

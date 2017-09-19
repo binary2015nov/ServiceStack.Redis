@@ -5,7 +5,7 @@ namespace ServiceStack.Redis.Tests
 {
     [TestFixture]
 #if !NETCORE    
-    [Explicit, Ignore("CI requires redis-server v3.2.0")]
+    [Explicit("CI requires redis-server v3.2.0")]
 #endif
     public class RedisGeoNativeClientTests
     {
@@ -13,11 +13,11 @@ namespace ServiceStack.Redis.Tests
 
         public RedisGeoNativeClientTests()
         {
-            redis = new RedisNativeClient(TestConfig.GeoHost);
+            redis = new RedisNativeClient(TestConfig.SingleHost);
         }
 
         [OneTimeTearDown]
-        public void OneTimeTearDown()
+        public void TestFixtureTearDown()
         {
             redis.Dispose();
         }

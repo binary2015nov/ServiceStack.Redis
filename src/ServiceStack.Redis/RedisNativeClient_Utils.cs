@@ -28,16 +28,18 @@ namespace ServiceStack.Redis
 {
     public partial class RedisNativeClient
     {
-        private const string OK = "OK";
-        private const string QUEUED = "QUEUED";
-        private static Timer UsageTimer;
+        private static Timer UsageTimer = new Timer(
+            delegate { Interlocked.Exchange(ref __requestsPerHour,0); }, null, TimeSpan.FromMilliseconds(0), TimeSpan.FromHours(1));
 
         private static int __requestsPerHour = 0;
+
         public static int RequestsPerHour
         {
             get { return __requestsPerHour; }
         }
 
+        private const string OK = "OK";
+        private const string QUEUED = "QUEUED";
         private const int Unknown = -1;
         public static int ServerVersionNumber { get; set; }
 
@@ -64,160 +66,137 @@ namespace ServiceStack.Redis
 
         private void Connect()
         {
-            if (UsageTimer == null)
-            {
-                //Save Timer Resource for licensed usage
-                if (!LicenseUtils.HasLicensedFeature(LicenseFeature.Redis))
-                {
-                    UsageTimer = new Timer(delegate
-                    {
-                        __requestsPerHour = 0;
-                    }, null, TimeSpan.FromMilliseconds(0), TimeSpan.FromHours(1));
-                }
-            }
-
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
-            {
-                SendTimeout = SendTimeout,
-                ReceiveTimeout = ReceiveTimeout
-            };
+            socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {
+                SendTimeout = SendTimeout, ReceiveTimeout = ReceiveTimeout };
             try
             {
-#if NETSTANDARD1_3
-                var addresses = Dns.GetHostAddressesAsync(Host).Result;
-                socket.Connect(addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork), Port);
-#else
                 if (ConnectTimeout <= 0)
                 {
+#if NETSTANDARD1_3
+                    var addresses = Dns.GetHostAddressesAsync(Host).Result;
+                    socket.Connect(addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork), Port);
+#else
                     socket.Connect(Host, Port);
+#endif
                 }
                 else
                 {
+                    bool connected;
+#if NETSTANDARD1_3
+                    var addresses = Dns.GetHostAddressesAsync(Host).Result;
+                    connected = socket.ConnectAsync(addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork), Port).Wait(ConnectTimeout);
+#else
                     var connectResult = socket.BeginConnect(Host, Port, null, null);
-                    connectResult.AsyncWaitHandle.WaitOne(ConnectTimeout, true);
-                }
+                    connected = connectResult.AsyncWaitHandle.WaitOne(ConnectTimeout, true);
 #endif
-
-                if (!socket.Connected)
-                {
-                    socket.Close();
-                    socket = null;
-                    DeactivatedAt = DateTime.UtcNow;
-                    return;
-                }
-
-                Stream networkStream = new NetworkStream(socket);
-
-                if (Ssl)
-                {
-                    if (Env.IsMono)
-                    {
-                        //Mono doesn't support EncryptionPolicy
-                        sslStream = new SslStream(networkStream,
-                            leaveInnerStreamOpen: false,
-                            userCertificateValidationCallback: RedisConfig.CertificateValidationCallback,
-                            userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback);
-                    }
-                    else
-                    {
-#if NETSTANDARD1_3
-                        sslStream = new SslStream(networkStream,
-                            leaveInnerStreamOpen: false,
-                            userCertificateValidationCallback: RedisConfig.CertificateValidationCallback,
-                            userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback,
-                            encryptionPolicy: EncryptionPolicy.RequireEncryption);
-#else
-                        var ctor = typeof(SslStream).GetAllConstructors()
-                            .First(x => x.GetParameters().Length == 5);
-
-                        var policyType = AssemblyUtils.FindType("System.Net.Security.EncryptionPolicy");
-                        var policyValue = Enum.Parse(policyType, "RequireEncryption");
-
-                        sslStream = (SslStream)ctor.Invoke(new[] {
-                            networkStream,
-                            false,
-                            RedisConfig.CertificateValidationCallback,
-                            RedisConfig.CertificateSelectionCallback,
-                            policyValue,
-                        });
-#endif                        
-                    }
-
-#if NETSTANDARD1_3
-                    sslStream.AuthenticateAsClientAsync(Host).Wait();
-#else
-                    sslStream.AuthenticateAsClient(Host);
-#endif
-
-                    if (!sslStream.IsEncrypted)
-                        throw new Exception("Could not establish an encrypted connection to " + Host);
-
-                    networkStream = sslStream;
-                }
-
-                Bstream = new BufferedStream(networkStream, 16 * 1024);
-
-                if (!string.IsNullOrEmpty(Password))
-                    SendUnmanagedExpectSuccess(Commands.Auth, Password.ToUtf8Bytes());
-
-                if (db != 0)
-                    SendUnmanagedExpectSuccess(Commands.Select, db.ToUtf8Bytes());
-
-                if (Client != null)
-                    SendUnmanagedExpectSuccess(Commands.Client, Commands.SetName, Client.ToUtf8Bytes());
-
-                try
-                {
-                    if (ServerVersionNumber == 0)
-                    {
-                        ServerVersionNumber = RedisConfig.AssumeServerVersion.GetValueOrDefault(0);
-                        if (ServerVersionNumber <= 0)
-                        {
-                            var parts = ServerVersion.Split('.');
-                            var version = int.Parse(parts[0]) * 1000;
-                            if (parts.Length > 1)
-                                version += int.Parse(parts[1]) * 100;
-                            if (parts.Length > 2)
-                                version += int.Parse(parts[2]);
-
-                            ServerVersionNumber = version;
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    //Twemproxy doesn't support the INFO command so automatically closes the socket
-                    //Fallback to ServerVersionNumber=Unknown then try re-connecting
-                    ServerVersionNumber = Unknown;
-                    Connect();
-                    return;
-                }
-
-                var ipEndpoint = socket.LocalEndPoint as IPEndPoint;
-                clientPort = ipEndpoint != null ? ipEndpoint.Port : -1;
-                lastCommand = null;
-                lastSocketException = null;
-                LastConnectedAtTimestamp = Stopwatch.GetTimestamp();
-
-                OnConnected();
-
-                if (ConnectionFilter != null)
-                {
-                    ConnectionFilter(this);
+                    if (!connected)
+                        throw new SocketException((int)SocketError.TimedOut);
                 }
             }
-            catch (SocketException)
+            catch (Exception ex)
             {
-                log.Error(ErrorConnect.Fmt(Host, Port));
-                throw;
+                throw new RedisException(ErrorConnect.Fmt(Host, Port), ex);
+            }
+            Stream networkStream = new NetworkStream(socket);
+
+            if (Ssl)
+            {
+                if (Env.IsMono)
+                {
+                    //Mono doesn't support EncryptionPolicy
+                    sslStream = new SslStream(networkStream,
+                        leaveInnerStreamOpen: false,
+                        userCertificateValidationCallback: RedisConfig.CertificateValidationCallback,
+                        userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback);
+                }
+                else
+                {
+#if NETSTANDARD1_3
+                    sslStream = new SslStream(networkStream,
+                        leaveInnerStreamOpen: false,
+                        userCertificateValidationCallback: RedisConfig.CertificateValidationCallback,
+                        userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback,
+                        encryptionPolicy: EncryptionPolicy.RequireEncryption);
+#else
+                    var ctor = typeof(SslStream).GetAllConstructors()
+                        .First(x => x.GetParameters().Length == 5);
+
+                    var policyType = AssemblyUtils.FindType("System.Net.Security.EncryptionPolicy");
+                    var policyValue = Enum.Parse(policyType, "RequireEncryption");
+
+                    sslStream = (SslStream)ctor.Invoke(new[] {
+                        networkStream,
+                        false,
+                        RedisConfig.CertificateValidationCallback,
+                        RedisConfig.CertificateSelectionCallback,
+                        policyValue,
+                    });
+#endif
+                }
+
+#if NETSTANDARD1_3
+                sslStream.AuthenticateAsClientAsync(Host).Wait();
+#else
+                sslStream.AuthenticateAsClient(Host);
+#endif
+
+                if (!sslStream.IsEncrypted)
+                    throw new Exception("Could not establish an encrypted connection to " + Host);
+
+                networkStream = sslStream;
+            }
+
+            Bstream = new BufferedStream(networkStream, 16 * 1024);
+            if (!string.IsNullOrEmpty(this.password))
+                Auth(this.password);
+            if (this.db != 0)
+                Select(this.db);
+            if (!string.IsNullOrEmpty(this.client))
+                ClientSetName(this.client);
+
+            try
+            {
+                if (ServerVersionNumber == 0)
+                {
+                    ServerVersionNumber = RedisConfig.AssumeServerVersion.GetValueOrDefault(0);
+                    if (ServerVersionNumber <= 0)
+                    {
+                        var parts = ServerVersion.Split('.');
+                        var version = int.Parse(parts[0]) * 1000;
+                        if (parts.Length > 1)
+                            version += int.Parse(parts[1]) * 100;
+                        if (parts.Length > 2)
+                            version += int.Parse(parts[2]);
+
+                        ServerVersionNumber = version;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                //Twemproxy doesn't support the INFO command so automatically closes the socket
+                //Fallback to ServerVersionNumber=Unknown then try re-connecting
+                ServerVersionNumber = Unknown;
+                Connect();
+                return;
+            }
+
+            var ipEndpoint = socket.LocalEndPoint as IPEndPoint;
+            clientPort = ipEndpoint != null ? ipEndpoint.Port : -1;
+            lastCommand = null;
+            LastConnectedAtTimestamp = Stopwatch.GetTimestamp();
+
+            OnConnected();
+
+            if (ConnectionFilter != null)
+            {
+                ConnectionFilter(this);
             }
         }
 
-        public static string ErrorConnect = "Could not connect to redis Instance at {0}:{1}";
+        private const string ErrorConnect = "Could not connect to redis Instance at {0}:{1}";
 
-        public virtual void OnConnected()
-        {
-        }
+        protected virtual void OnConnected() { }
 
         protected string ReadLine()
         {
@@ -259,7 +238,7 @@ namespace ServiceStack.Redis
             }
             catch (SocketException ex)
             {
-                log.Error(ErrorConnect.Fmt(Host, Port));
+                Logger.Error(ErrorConnect.Fmt(Host, Port));
 
                 if (socket != null)
                     socket.Close();
@@ -269,41 +248,59 @@ namespace ServiceStack.Redis
                 DeactivatedAt = DateTime.UtcNow;
                 var message = Host + ":" + Port;
                 var throwEx = new RedisException(message, ex);
-                log.Error(throwEx.Message, ex);
+                Logger.Error(throwEx.Message, ex);
                 throw throwEx;
             }
         }
 
         private void TryConnectIfNeeded()
         {
-            if (LastConnectedAtTimestamp > 0)
-            {
-                var now = Stopwatch.GetTimestamp();
-                var elapsedSecs = (now - LastConnectedAtTimestamp) / Stopwatch.Frequency;
+            var now = Stopwatch.GetTimestamp();
+            var elapsedSecs = (now - LastConnectedAtTimestamp) / Stopwatch.Frequency;
 
-                if (socket == null || (elapsedSecs > IdleTimeOutSecs && !socket.IsConnected()))
-                {
-                    Reconnect();
-                }
-                LastConnectedAtTimestamp = now;
-            }
-
-            if (socket == null)
+            if (socket == null || elapsedSecs > IdleTimeOutSecs && !socket.IsConnected())
             {
-                Connect();
+                Reconnect();
             }
         }
 
         private bool Reconnect()
         {
-            var previousDb = db;
+            //var previousDb = this.db;
 
             SafeConnectionClose();
             Connect(); //sets db to 0
 
-            if (previousDb != RedisConfig.DefaultDb) this.Db = previousDb;
+            //if (previousDb != RedisConfig.DefaultDb) this.Db = previousDb;
 
             return socket != null;
+        }
+
+        private void SafeConnectionClose()
+        {
+            try
+            {
+                // workaround for a .net bug: http://support.microsoft.com/kb/821625
+                if (Bstream != null)
+                    Bstream.Close();
+            }
+            catch { }
+            try
+            {
+                if (sslStream != null)
+                    sslStream.Close();
+            }
+            catch { }
+            try
+            {
+                if (socket != null)
+                    socket.Close();
+            }
+            catch { }
+
+            Bstream = null;
+            sslStream = null;
+            socket = null;
         }
 
         private RedisResponseException CreateResponseError(string error)
@@ -321,7 +318,7 @@ namespace ServiceStack.Redis
             }
 
             var throwEx = new RedisResponseException(error);
-            log.Error(error);
+            Logger.Error(error);
             return throwEx;
         }
 
@@ -338,7 +335,7 @@ namespace ServiceStack.Redis
             var throwEx = new RedisRetryableException(string.Format("[{0}] {1}, sPort: {2}, LastCommand: {3}",
                     DateTime.UtcNow.ToString("HH:mm:ss.fff"),
                     error, clientPort, safeLastCommand));
-            log.Error(throwEx.Message);
+            Logger.Error(throwEx.Message);
             throw throwEx;
         }
 
@@ -348,9 +345,8 @@ namespace ServiceStack.Redis
             var throwEx = new RedisException(string.Format("[{0}] Unable to Connect: sPort: {1}{2}",
                     DateTime.UtcNow.ToString("HH:mm:ss.fff"),
                     clientPort,
-                    originalEx != null ? ", Error: " + originalEx.Message + "\n" + originalEx.StackTrace : ""),
-                originalEx ?? lastSocketException);
-            log.Error(throwEx.Message);
+                    ", Error: " + originalEx.Message + "\n" + originalEx.StackTrace));
+            Logger.Error(throwEx.Message);
             throw throwEx;
         }
 
@@ -385,7 +381,7 @@ namespace ServiceStack.Redis
                     LicenseUtils.AssertValidUsage(LicenseFeature.Redis, QuotaType.RequestsPerHour, __requestsPerHour);
             }
 
-            if (log.IsDebugEnabled && !RedisConfig.DisableVerboseLogging)
+            if (Logger.IsDebugEnabled && !RedisConfig.DisableVerboseLogging)
                 CmdLog(cmdWithBinaryArgs);
 
             //Total command lines count
@@ -523,31 +519,25 @@ namespace ServiceStack.Redis
             return Bstream.ReadByte();
         }
 
-        protected T SendReceive<T>(byte[][] cmdWithBinaryArgs,
-            Func<T> fn,
-            Action<Func<T>> completePipelineFn = null,
-            bool sendWithoutRead = false)
+        protected T SendReceive<T>(byte[][] cmdWithBinaryArgs, Func<T> fn, Action<Func<T>> completePipelineFn = null, bool sendWithoutRead = false)
         {
-            var i = 0;
             Exception originalEx = null;
 
             var firstAttempt = DateTime.UtcNow;
-
+            var i = 0;
             while (true)
             {
                 try
                 {
-                    TryConnectIfNeeded();
 
-                    if (socket == null)
-                        throw new RedisRetryableException("Socket is not connected");
+                    TryConnectIfNeeded();
 
                     if (i == 0) //only write to buffer once
                         WriteCommandToSendBuffer(cmdWithBinaryArgs);
 
                     if (Pipeline == null) //pipeline will handle flush if in pipeline
                     {
-                        FlushSendBuffer();
+                        FlushAndResetSendBuffer();
                     }
                     else if (!sendWithoutRead)
                     {
@@ -562,8 +552,8 @@ namespace ServiceStack.Redis
                     if (fn != null)
                         result = fn();
 
-                    if (Pipeline == null)
-                        ResetSendBuffer();
+                    //if (Pipeline == null)
+                    //    ResetSendBuffer();
 
                     if (i > 0)
                         Interlocked.Increment(ref RedisState.TotalRetrySuccess);
@@ -609,7 +599,7 @@ namespace ServiceStack.Redis
         {
             DeactivatedAt = DateTime.UtcNow;
             var message = "Exceeded timeout of {0}".Fmt(retryTimeout);
-            log.Error(message);
+            Logger.Error(message);
             return new RedisException(message, originalEx);
         }
 
@@ -621,9 +611,8 @@ namespace ServiceStack.Redis
 
             if (socketEx == null)
                 return null;
-
-            log.Error("SocketException in SendReceive, retrying...", socketEx);
-            lastSocketException = socketEx;
+        
+            Logger.Error("SocketException in SendReceive, retrying...", socketEx);
 
             if (socket != null)
                 socket.Close();
@@ -742,7 +731,7 @@ namespace ServiceStack.Redis
             if (RedisConfig.DisableVerboseLogging)
                 return;
 
-            log.DebugFormat("{0}", string.Format(fmt, args).Trim());
+            Logger.DebugFormat("{0}", string.Format(fmt, args).Trim());
         }
 
         protected void CmdLog(byte[][] args)
@@ -767,7 +756,7 @@ namespace ServiceStack.Redis
                 this.lastCommand = this.lastCommand.Substring(0, 100) + "...";
             }
 
-            log.Debug("S: " + this.lastCommand);
+            Logger.Debug("S: " + this.lastCommand);
         }
 
         //Turn Action into Func Hack
@@ -785,8 +774,8 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
-                Log((char)c + s);
+            if (!RedisConfig.DisableVerboseLogging && Logger.IsDebugEnabled)
+                Logger.Debug((char)c + s);
 
             if (c == '-')
                 throw CreateResponseError(s.StartsWith("ERR") && s.Length >= 4 ? s.Substring(4) : s);
@@ -800,7 +789,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log((char)c + s);
 
             if (c == '-')
@@ -818,7 +807,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log((char)c + s);
 
             if (c == '-')
@@ -845,7 +834,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             if (c == '-')
@@ -884,7 +873,7 @@ namespace ServiceStack.Redis
 
         private byte[] ParseSingleLine(string r)
         {
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", r);
             if (r.Length == 0)
                 throw CreateResponseError("Zero length response");
@@ -937,7 +926,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -987,7 +976,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -1026,7 +1015,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -1068,7 +1057,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
             if (c == '-')
                 throw CreateResponseError(s.StartsWith("ERR") ? s.Substring(4) : s);
@@ -1107,13 +1096,13 @@ namespace ServiceStack.Redis
             byte[][] keys, byte[][] values)
         {
             if (keys == null || keys.Length == 0)
-                throw new ArgumentNullException("keys");
+                throw new ArgumentNullException(nameof(keys));
             if (values == null || values.Length == 0)
-                throw new ArgumentNullException("values");
+                throw new ArgumentNullException(nameof(values));
             if (keys.Length != values.Length)
                 throw new ArgumentException("The number of values must be equal to the number of keys");
 
-            var keyValueStartIndex = (firstParams != null) ? firstParams.Length : 0;
+            var keyValueStartIndex = firstParams != null ? firstParams.Length : 0;
 
             var keysAndValuesLength = keys.Length * 2 + keyValueStartIndex;
             var keysAndValues = new byte[keysAndValuesLength][];

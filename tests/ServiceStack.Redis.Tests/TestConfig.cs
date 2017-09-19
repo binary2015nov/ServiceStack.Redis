@@ -15,7 +15,7 @@ namespace ServiceStack.Redis.Tests
 
         public static string SingleHost => Environment.GetEnvironmentVariable("CI_REDIS") ?? "localhost";
 
-        public static string GeoHost => Environment.GetEnvironmentVariable("CI_REDIS") ?? "10.0.0.121";
+        public static string GeoHost => Environment.GetEnvironmentVariable("CI_REDIS") ?? "localhost";
 
         public static readonly string[] MasterHosts = new[] { "localhost" };
         public static readonly string[] SlaveHosts = new[] { "localhost" };

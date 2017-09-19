@@ -6,13 +6,13 @@ namespace ServiceStack.Redis.Tests
     public class ConfigTests
     {
         [OneTimeSetUp]
-        public void OneTimeSetUp()
+        public void TestFixtureSetUp()
         {
             RedisConfig.VerifyMasterConnections = false;
         }
 
         [OneTimeTearDown]
-        public void OneTimeTearDown()
+        public void TestFixtureTearDown()
         {
             RedisConfig.VerifyMasterConnections = true;
         }

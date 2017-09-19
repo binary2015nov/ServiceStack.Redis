@@ -1,11 +1,9 @@
 using System;
-using ServiceStack.Common;
 using ServiceStack.Text;
 
 namespace ServiceStack.Redis
 {
-    public class RedisLock
-        : IDisposable
+    public class RedisLock : IDisposable
     {
         private readonly RedisClient redisClient;
         private readonly string key;

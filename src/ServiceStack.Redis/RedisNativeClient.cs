@@ -34,18 +34,16 @@ namespace ServiceStack.Redis
     /// that commands are not executed properly by redis and Servicestack wont be able to (json) serialize 
     /// the data that comes back.
     /// </summary>
-    public partial class RedisNativeClient
-        : IRedisNativeClient
+    public partial class RedisNativeClient : IRedisNativeClient
     {
-        private static readonly ILog log = LogManager.GetLogger(typeof(RedisNativeClient));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(RedisNativeClient));
 
         internal const int Success = 1;
         internal const int OneGb = 1073741824;
-        private readonly byte[] endData = new[] { (byte)'\r', (byte)'\n' };
+        private readonly byte[] endData = { (byte)'\r', (byte)'\n' };
 
         private int clientPort;
         private string lastCommand;
-        private SocketException lastSocketException;
 
         internal long deactivatedAtTicks;
         public DateTime? DeactivatedAt
@@ -93,7 +91,7 @@ namespace ServiceStack.Redis
 
         internal IHandleClientDispose ClientManager { get; set; }
 
-        internal long LastConnectedAtTimestamp;
+        public long LastConnectedAtTimestamp { get; private set; }
 
         public long Id { get; set; }
 
@@ -115,8 +113,6 @@ namespace ServiceStack.Redis
         public int RetryCount { get; set; }
         public int SendTimeout { get; set; }
         public int ReceiveTimeout { get; set; }
-        public string Password { get; set; }
-        public string Client { get; set; }
         public int IdleTimeOutSecs { get; set; }
 
         public Action<IRedisNativeClient> ConnectionFilter { get; set; }
@@ -149,81 +145,53 @@ namespace ServiceStack.Redis
             }
         }
 
-        internal void EndPipeline()
+        public bool IsManagedClient
         {
-            ResetSendBuffer();
-
-            if (Pipeline != null)
-            {
-                Pipeline = null;
-                Interlocked.Increment(ref __requestsPerHour);
-            }
+            get { return ClientManager != null; }
         }
 
-        public RedisNativeClient(string connectionString)
-            : this(connectionString.ToRedisEndpoint()) { }
+        public RedisNativeClient() : this(RedisConfig.DefaultHost, RedisConfig.DefaultPort) { }
 
-        public RedisNativeClient(RedisEndpoint config)
+        public RedisNativeClient(string connectionString) : this(connectionString.ToRedisEndpoint()) { }
+
+        public RedisNativeClient(string host, int port, string password = null, long db = RedisConfig.DefaultDb) : this(new RedisEndpoint(host, port, password, db)) { }
+
+        public RedisNativeClient(RedisEndpoint redisEndpoint)
         {
-            Init(config);
-        }
-
-        public RedisNativeClient(string host, int port)
-            : this(host, port, null) { }
-
-        public RedisNativeClient(string host, int port, string password = null, long db = RedisConfig.DefaultDb)
-        {
-            if (host == null)
-                throw new ArgumentNullException("host");
-
-            Init(new RedisEndpoint(host, port, password, db));
-        }
-
-        private void Init(RedisEndpoint config)
-        {
-            Host = config.Host;
-            Port = config.Port;
-            ConnectTimeout = config.ConnectTimeout;
-            SendTimeout = config.SendTimeout;
-            ReceiveTimeout = config.ReceiveTimeout;
-            RetryTimeout = config.RetryTimeout;
-            Password = config.Password;
-            NamespacePrefix = config.NamespacePrefix;
-            Client = config.Client;
-            Db = config.Db;
-            Ssl = config.Ssl;
-            IdleTimeOutSecs = config.IdleTimeOutSecs;
+            Host = redisEndpoint.Host;
+            Port = redisEndpoint.Port;
+            ConnectTimeout = redisEndpoint.ConnectTimeout;
+            SendTimeout = redisEndpoint.SendTimeout;
+            ReceiveTimeout = redisEndpoint.ReceiveTimeout;
+            RetryTimeout = redisEndpoint.RetryTimeout;
+            NamespacePrefix = redisEndpoint.NamespacePrefix;
+            Ssl = redisEndpoint.Ssl;
+            IdleTimeOutSecs = redisEndpoint.IdleTimeOutSecs;
             ServerVersionNumber = RedisConfig.AssumeServerVersion.GetValueOrDefault();
+            this.db = redisEndpoint.Db;
+            this.password = redisEndpoint.Password;
+            this.client = redisEndpoint.Client;
+            Connect();
         }
-
-        public RedisNativeClient()
-            : this(RedisConfig.DefaultHost, RedisConfig.DefaultPort) { }
 
         #region Common Operations
 
-        long db;
-        public long Db
+        private long db;
+        public long Db { get { return db; } set { Select(value); } }
+
+        public void Select(long db)
         {
-            get
-            {
-                return db;
-            }
-
-            set
-            {
-                db = value;
-
-                if (HasConnected)
-                {
-                    ChangeDb(db);
-                }
-            }
+            SendExpectSuccess(Commands.Select, db.ToUtf8Bytes());
+            this.db = db;
         }
 
-        public void ChangeDb(long db)
+        private string password;
+        public string Password { get { return password; } set { Auth(value); } }
+
+        public void Auth(string password)
         {
-            this.db = db;
-            SendExpectSuccess(Commands.Select, db.ToUtf8Bytes());
+            SendUnmanagedExpectSuccess(Commands.Auth, password.ToUtf8Bytes());
+            this.password = password;
         }
 
         public long DbSize
@@ -240,7 +208,7 @@ namespace ServiceStack.Redis
             {
                 var t = SendExpectLong(Commands.LastSave);
                 return t.FromUnixTime();
-            }
+            }           
         }
 
         public Dictionary<string, string> Info
@@ -250,8 +218,7 @@ namespace ServiceStack.Redis
                 var lines = SendExpectString(Commands.Info);
                 var info = new Dictionary<string, string>();
 
-                foreach (var line in lines
-                    .Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var line in lines.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     var p = line.IndexOf(':');
                     if (p == -1) continue;
@@ -369,7 +336,7 @@ namespace ServiceStack.Redis
         public byte[] Dump(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectData(Commands.Dump, key.ToUtf8Bytes());
         }
@@ -377,7 +344,7 @@ namespace ServiceStack.Redis
         public byte[] Restore(string key, long expireMs, byte[] dumpValue)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectData(Commands.Restore, key.ToUtf8Bytes(), expireMs.ToUtf8Bytes(), dumpValue);
         }
@@ -385,7 +352,7 @@ namespace ServiceStack.Redis
         public void Migrate(string host, int port, string key, int destinationDb, long timeoutMs)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             SendExpectSuccess(Commands.Migrate, host.ToUtf8Bytes(), port.ToUtf8Bytes(), key.ToUtf8Bytes(), destinationDb.ToUtf8Bytes(), timeoutMs.ToUtf8Bytes());
         }
@@ -393,7 +360,7 @@ namespace ServiceStack.Redis
         public bool Move(string key, int db)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.Move, key.ToUtf8Bytes(), db.ToUtf8Bytes()) == Success;
         }
@@ -401,7 +368,7 @@ namespace ServiceStack.Redis
         public long ObjectIdleTime(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.Object, Commands.IdleTime, key.ToUtf8Bytes());
         }
@@ -409,7 +376,7 @@ namespace ServiceStack.Redis
         public string Type(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectCode(Commands.Type, key.ToUtf8Bytes());
         }
@@ -437,7 +404,7 @@ namespace ServiceStack.Redis
         public long StrLen(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectLong(Commands.StrLen, key.ToUtf8Bytes());
         }
@@ -445,7 +412,8 @@ namespace ServiceStack.Redis
         public void Set(string key, byte[] value)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
+
             value = value ?? TypeConstants.EmptyByteArray;
 
             if (value.Length > OneGb)
@@ -587,7 +555,7 @@ namespace ServiceStack.Redis
         public byte[] GetBytes(string key)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             return SendExpectData(Commands.Get, key.ToUtf8Bytes());
         }
@@ -595,7 +563,7 @@ namespace ServiceStack.Redis
         public byte[] GetSet(string key, byte[] value)
         {
             if (key == null)
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
 
             value = value ?? TypeConstants.EmptyByteArray;
 
@@ -866,20 +834,18 @@ namespace ServiceStack.Redis
             return SendExpectComplexResponse(Commands.Role).ToRedisText();
         }
 
+        private string client;
+        public string Client { get { return client; } set { ClientSetName(value); } }
+
         public string ClientGetName()
         {
-            return SendExpectString(Commands.Client, Commands.GetName);
+            return (client = SendExpectString(Commands.Client, Commands.GetName));
         }
 
         public void ClientSetName(string name)
         {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentException("Name cannot be null or empty");
-
-            if (name.Contains(" "))
-                throw new ArgumentException("Name cannot contain spaces");
-
             SendExpectSuccess(Commands.Client, Commands.SetName, name.ToUtf8Bytes());
+            this.client = name;
         }
 
         public void ClientPause(int timeOutMs)
@@ -1096,7 +1062,6 @@ namespace ServiceStack.Redis
 
         #endregion
 
-
         #region Set Operations
 
         public byte[][] SMembers(string setId)
@@ -1246,7 +1211,6 @@ namespace ServiceStack.Redis
         }
 
         #endregion
-
 
         #region List Operations
 
@@ -1974,7 +1938,6 @@ namespace ServiceStack.Redis
 
         #endregion
 
-
         #region Hash Operations
 
         private static void AssertHashIdAndKey(object hashId, byte[] key)
@@ -2398,12 +2361,9 @@ namespace ServiceStack.Redis
 
         #endregion
 
-        internal bool IsDisposed { get; set; }
+        # region IDisposable
 
-        public bool IsManagedClient
-        {
-            get { return ClientManager != null; }
-        }
+        public bool IsDisposed { get; private set; }
 
         public virtual void Dispose()
         {
@@ -2431,7 +2391,7 @@ namespace ServiceStack.Redis
             }
         }
 
-        internal void DisposeConnection()
+        private void DisposeConnection()
         {
             if (IsDisposed) return;
             IsDisposed = true;
@@ -2444,7 +2404,7 @@ namespace ServiceStack.Redis
             }
             catch (Exception ex)
             {
-                log.Error("Error when trying to Quit()", ex);
+                Logger.Error("Error when trying to Quit()", ex);
             }
             finally
             {
@@ -2452,31 +2412,17 @@ namespace ServiceStack.Redis
             }
         }
 
-        private void SafeConnectionClose()
-        {
-            try
-            {
-                // workaround for a .net bug: http://support.microsoft.com/kb/821625
-                if (Bstream != null)
-                    Bstream.Close();
-            }
-            catch { }
-            try
-            {
-                if (sslStream != null)
-                    sslStream.Close();
-            }
-            catch { }
-            try
-            {
-                if (socket != null)
-                    socket.Close();
-            }
-            catch { }
+        #endregion
 
-            Bstream = null;
-            sslStream = null;
-            socket = null;
+        internal void EndPipeline()
+        {
+            ResetSendBuffer();
+
+            if (Pipeline != null)
+            {
+                Pipeline = null;
+                Interlocked.Increment(ref __requestsPerHour);
+            }
         }
     }
 }

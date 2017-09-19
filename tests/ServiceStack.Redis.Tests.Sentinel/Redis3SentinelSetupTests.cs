@@ -5,8 +5,7 @@ namespace ServiceStack.Redis.Tests.Sentinel
 {
     [TestFixture, Category("Integration")]
     [Explicit("Requires cloud setup")]
-    public class Redis3SentinelSetupTests
-        : RedisSentinelTestBase
+    public class Redis3SentinelSetupTests : RedisSentinelTestBase
     {
         [Test]
         public void Can_connect_to_3SentinelSetup()
