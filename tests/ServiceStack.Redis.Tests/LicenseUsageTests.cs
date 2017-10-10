@@ -76,7 +76,7 @@ namespace ServiceStack.Redis.Tests
 #if NETCORE
 			LicenseUtils.RegisterLicense(Environment.GetEnvironmentVariable("SERVICESTACK_LICENSE"));
 #else
-			Licensing.RegisterLicense(new AppSettings().GetString("servicestack:license"));
+			Licensing.RegisterLicense(new AppSettings().Get("servicestack:license"));
 #endif
 
 			using (var client = new RedisClient(TestConfig.SingleHost))
@@ -93,7 +93,7 @@ namespace ServiceStack.Redis.Tests
 #if NETCORE
 			Environment.GetEnvironmentVariable("SERVICESTACK_LICENSE");
 #else
-			Licensing.RegisterLicense(new AppSettings().GetString("servicestack:license"));
+			Licensing.RegisterLicense(new AppSettings().Get("servicestack:license"));
 #endif
 
 			using (var client = new RedisClient(TestConfig.SingleHost))

@@ -24,12 +24,12 @@ namespace ServiceStack.Redis.Tests
         private string connectionString;
 
         [OneTimeSetUp]
-        public void OneTimeSetUp()
+        public void TestFixtureSetUp()
         {
             var settings = new TextFileSettings("~/azureconfig.txt".MapProjectPath());
-            Host = settings.GetString("Host");
+            Host = settings.Get("Host");
             Port = settings.Get("Port", 6379);
-            Password = settings.GetString("Password");
+            Password = settings.Get("Password");
             connectionString = "{0}@{1}".Fmt(Password, Host);
         }
 
