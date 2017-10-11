@@ -70,8 +70,6 @@
         <member name="T:ServiceStack.Logging.ConsoleLogger">
             <summary>
             Default logger is to Console.WriteLine
-            
-            Made public so its testable
             </summary>
         </member>
         <member name="M:ServiceStack.Logging.ConsoleLogger.#ctor(System.String)">
@@ -109,8 +107,6 @@
         <member name="T:ServiceStack.Logging.DebugLogger">
             <summary>
             Default logger is to System.Diagnostics.Debug.WriteLine
-            
-            Made public so its testable
             </summary>
         </member>
         <member name="M:ServiceStack.Logging.DebugLogger.#ctor(System.String)">

@@ -420,6 +420,23 @@
             <typeparam name="T"></typeparam>
             <returns></returns>
         </member>
+        <member name="M:ServiceStack.Configuration.ISettingsReader.Get(System.String)">
+            <summary>
+            Provides a common interface for Settings providers such as
+            ConfigurationManager or Azure's RoleEnvironment. The only
+            requirement is that if the implementation cannot find the
+            specified key, the return value must be null
+            </summary>
+            <param name="key">The key for the setting</param>
+            <returns>The string value of the specified key, or null if the key
+            was invalid</returns>
+        </member>
+        <member name="M:ServiceStack.Configuration.ISettingsReader.GetAllKeys">
+            <summary>
+            Return all keys in this configuration source.
+            </summary>
+            <returns></returns>
+        </member>
         <member name="T:ServiceStack.DataAnnotations.BelongToAttribute">
             <summary>
             BelongToAttribute
@@ -786,56 +803,12 @@
         </member>
         <member name="T:ServiceStack.Logging.LogManager">
             <summary>
-            Logging API for this library. You can inject your own implementation otherwise
-            will use the DebugLogFactory to write to System.Diagnostics.Debug
+            Provides access to log factories and loggers. This class cannot be inherited.
             </summary>
         </member>
         <member name="P:ServiceStack.Logging.LogManager.LogFactory">
             <summary>
-            Gets or sets the log factory.
-            Use this to override the factory that is used to create loggers
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.LogManager.GetLogger(System.Type)">
-            <summary>
-            Gets the logger.
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.LogManager.GetLogger(System.String)">
-            <summary>
-            Gets the logger.
-            </summary>
-        </member>
-        <member name="T:ServiceStack.Logging.NullDebugLogger">
-            <summary>
-            Default logger is to System.Diagnostics.Debug.Print
-            
-            Made public so its testable
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.NullDebugLogger.#ctor(System.String)">
-            <summary>
-            Initializes a new instance of the <see cref="!:DebugLogger"/> class.
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.NullDebugLogger.#ctor(System.Type)">
-            <summary>
-            Initializes a new instance of the <see cref="!:DebugLogger"/> class.
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.NullDebugLogger.Log(System.Object,System.Exception)">
-            <summary>
-            Logs the specified message.
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.NullDebugLogger.LogFormat(System.Object,System.Object[])">
-            <summary>
-            Logs the format.
-            </summary>
-        </member>
-        <member name="M:ServiceStack.Logging.NullDebugLogger.Log(System.Object)">
-            <summary>
-            Logs the specified message.
+            Gets or sets the log factory used to create loggers. The default value is <see cref="T:ServiceStack.Logging.NullLogFactory"/>.
             </summary>
         </member>
         <member name="T:ServiceStack.Logging.NullLogFactory">
@@ -845,10 +818,20 @@
             Made public so its testable
             </summary>
         </member>
-        <member name="T:ServiceStack.Logging.StringBuilderLogFactory">
+        <member name="T:ServiceStack.Logging.NullLogger">
             <summary>
-            StringBuilderLog writes to shared StringBuffer.
+            Default logger is to System.Diagnostics.Debug.Print
             Made public so its testable
+            </summary>
+        </member>
+        <member name="M:ServiceStack.Logging.NullLogger.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="!:DebugLogger"/> class.
+            </summary>
+        </member>
+        <member name="M:ServiceStack.Logging.NullLogger.#ctor(System.Type)">
+            <summary>
+            Initializes a new instance of the <see cref="!:DebugLogger"/> class.
             </summary>
         </member>
         <member name="M:ServiceStack.Logging.StringBuilderLog.Log(System.Object,System.Exception)">
@@ -867,6 +850,12 @@
             </summary>
             <param name="message">The message.</param>
         </member>
+        <member name="T:ServiceStack.Logging.StringBuilderLogFactory">
+            <summary>
+            StringBuilderLog writes to shared StringBuffer.
+            Made public so its testable
+            </summary>
+        </member>
         <member name="T:ServiceStack.Logging.TestLogFactory">
             <summary>
             Creates a test Logger, that stores all log messages in a member list
@@ -883,7 +872,7 @@
             <summary>
             Initializes a new instance of the <see cref="T:ServiceStack.Logging.TestLogger"/> class.
             </summary>
-            <param name="type">The type.</param>
+            <param name="name">The type.</param>
         </member>
         <member name="M:ServiceStack.Logging.TestLogger.#ctor(System.Type)">
             <summary>
