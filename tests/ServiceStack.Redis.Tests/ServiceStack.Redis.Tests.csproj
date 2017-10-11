@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\ServiceStack.Redis\ServiceStack.Redis.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
     <PackageReference Include="NUnit" Version="3.7.1" />
+    <PackageReference Include="NUnit" Version="3.8.1" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">

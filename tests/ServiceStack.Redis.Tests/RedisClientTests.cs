@@ -246,7 +246,20 @@ namespace ServiceStack.Redis.Tests
         [Test]
         public void Can_Save()
         {
-            Redis.Save();
+            try
+            {
+                Redis.Save();
+            }
+            catch (RedisResponseException e)
+            {
+                // if exception has that message then it still proves that BgSave works as expected.
+                if (e.Message.StartsWith("Can't BGSAVE while AOF log rewriting is in progress")
+                    || e.Message.StartsWith("An AOF log rewriting in progress: can't BGSAVE right now")
+                    || e.Message.StartsWith("Background save already in progress"))
+                    return;
+
+                throw;
+            }
         }
 
         [Test]
@@ -260,7 +273,8 @@ namespace ServiceStack.Redis.Tests
             {
                 // if exception has that message then it still proves that BgSave works as expected.
                 if (e.Message.StartsWith("Can't BGSAVE while AOF log rewriting is in progress")
-                    || e.Message.StartsWith("An AOF log rewriting in progress: can't BGSAVE right now"))
+                    || e.Message.StartsWith("An AOF log rewriting in progress: can't BGSAVE right now")
+                    || e.Message.StartsWith("Background save already in progress"))
                     return;
 
                 throw;
