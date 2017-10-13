@@ -10,7 +10,8 @@ namespace ServiceStack.Redis
 {
     public class RedisPubSubServer : IRedisPubSubServer
     {
-        private static ILog Log = LogManager.GetLogger(typeof(RedisPubSubServer));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(RedisPubSubServer));
+
         private DateTime serverTimeAtStart;
         private Stopwatch startedAt;
 
@@ -109,13 +110,13 @@ namespace ServiceStack.Redis
                             Name = "RedisPubSubServer " + Interlocked.Increment(ref bgThreadCount)
                         };
                         bgThread.Start();
-                        if (Log.IsDebugEnabled)
-                            Log.Debug("Started Background Thread: " + bgThread.Name);
+                        if (Logger.IsDebugEnabled)
+                            Logger.Debug("Started Background Thread: " + bgThread.Name);
                     }
                     else
                     {
-                        if (Log.IsDebugEnabled)
-                            Log.Debug("Retrying RunLoop() on Thread: " + bgThread.Name);
+                        if (Logger.IsDebugEnabled)
+                            Logger.Debug("Retrying RunLoop() on Thread: " + bgThread.Name);
                         RunLoop();
                     }
                 }
@@ -245,14 +246,14 @@ namespace ServiceStack.Redis
                                     switch (op)
                                     {
                                         case Operation.Stop:
-                                            if (Log.IsDebugEnabled)
-                                                Log.Debug("Stop Command Issued");
+                                            if (Logger.IsDebugEnabled)
+                                                Logger.Debug("Stop Command Issued");
 
                                             Interlocked.CompareExchange(ref status, Status.Stopping, Status.Started);
                                             try
                                             {
-                                                if (Log.IsDebugEnabled)
-                                                    Log.Debug("UnSubscribe From All Channels...");
+                                                if (Logger.IsDebugEnabled)
+                                                    Logger.Debug("UnSubscribe From All Channels...");
 
                                                 subscription.UnSubscribeFromAllChannels(); //Un block thread.
                                             }
@@ -329,8 +330,8 @@ namespace ServiceStack.Redis
 
             if (Interlocked.CompareExchange(ref status, Status.Stopping, Status.Started) == Status.Started)
             {
-                if (Log.IsDebugEnabled)
-                    Log.Debug("Stopping RedisPubSubServer...");
+                if (Logger.IsDebugEnabled)
+                    Logger.Debug("Stopping RedisPubSubServer...");
 
                 //Unblock current bgthread by issuing StopCommand
                 SendControlCommand(Operation.Stop);
@@ -362,7 +363,7 @@ namespace ServiceStack.Redis
             catch (Exception ex)
             {
                 OnError?.Invoke(ex);
-                Log.Warn("Could not send '{0}' message to bg thread: {1}".Fmt(msg, ex.Message));
+                Logger.Warn("Could not send '{0}' message to bg thread: {1}".Fmt(msg, ex.Message));
             }
         }
 
@@ -392,15 +393,15 @@ namespace ServiceStack.Redis
             catch (Exception ex)
             {
                 OnError?.Invoke(ex);
-                Log.Warn("Error trying to UnSubscribeFromChannels in OnFailover. Restarting...", ex);
+                Logger.Warn("Error trying to UnSubscribeFromChannels in OnFailover. Restarting...", ex);
                 Restart();
             }
         }
 
         void HandleUnSubscribe(string channel)
         {
-            if (Log.IsDebugEnabled)
-                Log.Debug("OnUnSubscribe: " + channel);
+            if (Logger.IsDebugEnabled)
+                Logger.Debug("OnUnSubscribe: " + channel);
 
             OnUnSubscribe?.Invoke(channel);
         }
@@ -419,11 +420,11 @@ namespace ServiceStack.Redis
                 {
 #if !NETSTANDARD1_3                    
                     //Ideally we shouldn't get here, but lets try our hardest to clean it up
-                    Log.Warn("Interrupting previous Background Thread: " + bgThread.Name);
+                    Logger.Warn("Interrupting previous Background Thread: " + bgThread.Name);
                     bgThread.Interrupt();
                     if (!bgThread.Join(TimeSpan.FromSeconds(3)))
                     {
-                        Log.Warn(bgThread.Name + " just wont die, so we're now aborting it...");
+                        Logger.Warn(bgThread.Name + " just wont die, so we're now aborting it...");
                         bgThread.Abort();
                     }
 #endif
@@ -442,8 +443,8 @@ namespace ServiceStack.Redis
                 rand.Next((int)Math.Pow(continuousErrorsCount, 3), (int)Math.Pow(continuousErrorsCount + 1, 3) + 1),
                 MaxSleepMs);
 
-            if (Log.IsDebugEnabled)
-                Log.Debug("Sleeping for {0}ms after {1} continuous errors".Fmt(nextTry, continuousErrorsCount));
+            if (Logger.IsDebugEnabled)
+                Logger.Debug("Sleeping for {0}ms after {1} continuous errors".Fmt(nextTry, continuousErrorsCount));
 
             TaskUtils.Sleep(nextTry);
         }
@@ -535,7 +536,7 @@ namespace ServiceStack.Redis
             }
             catch (Exception ex)
             {
-                Log.Error("Error OnDispose(): ", ex);
+                Logger.Error("Error OnDispose(): ", ex);
             }
 
             try
