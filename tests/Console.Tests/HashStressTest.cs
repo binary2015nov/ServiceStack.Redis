@@ -28,6 +28,11 @@ namespace ConsoleTests
             if (obj.GetType() != this.GetType()) return false;
             return Equals((DeviceInfo) obj);
         }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     public class HashStressTest

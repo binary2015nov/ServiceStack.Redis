@@ -66,7 +66,7 @@ namespace ServiceStack.Redis
             }
         }
 
-        public bool Replay()
+        public virtual bool Replay()
         {
             Init();
             Execute();
@@ -79,7 +79,7 @@ namespace ServiceStack.Redis
             RedisClient.EndPipeline();
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             ClosePipeline();
         }

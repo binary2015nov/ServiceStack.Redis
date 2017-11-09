@@ -118,8 +118,8 @@ namespace ServiceStack.Redis
                         userCertificateSelectionCallback: RedisConfig.CertificateSelectionCallback,
                         encryptionPolicy: EncryptionPolicy.RequireEncryption);
 #else
-                    var ctor = typeof(SslStream).GetAllConstructors()
-                        .First(x => x.GetParameters().Length == 5);
+                        var ctor = typeof(SslStream).GetConstructors()
+                            .First(x => x.GetParameters().Length == 5);
 
                     var policyType = AssemblyUtils.FindType("System.Net.Security.EncryptionPolicy");
                     var policyValue = Enum.Parse(policyType, "RequireEncryption");

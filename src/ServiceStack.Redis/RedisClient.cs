@@ -500,7 +500,7 @@ namespace ServiceStack.Redis
             return results;
         }
 
-        public IRedisSubscription CreateSubscription()
+        public override IRedisSubscription CreateSubscription()
         {
             return new RedisSubscription(this);
         }
