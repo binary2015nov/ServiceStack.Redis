@@ -7,8 +7,7 @@ using ServiceStack.Text;
 namespace ServiceStack.Redis.Tests
 {
     [TestFixture]
-    public class RedisClientListTests
-        : RedisClientTestsBase
+    public class RedisClientListTests : RedisClientTestsBase
     {
         const string ListId = "rcl_testlist";
         const string ListId2 = "rcl_testlist2";
