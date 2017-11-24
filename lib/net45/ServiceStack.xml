@@ -160,6 +160,13 @@
             Only allow access to users in specified roles
             </summary>
         </member>
+        <member name="M:ServiceStack.Auth.AuthenticateService.GetAuthProvider(System.String)">
+            <summary>
+            Get specific AuthProvider
+            </summary>
+            <param name="provider"></param>
+            <returns></returns>
+        </member>
         <member name="M:ServiceStack.Auth.AuthenticateService.Authenticate(ServiceStack.Authenticate)">
             <summary>
             Public API entry point to authenticate via code
@@ -4743,6 +4750,11 @@
             </summary>
             <param name="type">The type.</param>
             <returns></returns>
+        </member>
+        <member name="T:ServiceStack.HotReloadFeature">
+            <summary>
+            Back-end Service used by /js/hot-fileloader.js to detect file changes in /wwwroot and auto reload page.
+            </summary>
         </member>
         <!-- Badly formed XML comment ignored for member "T:ServiceStack.Html.HtmlCompressor" -->
         <member name="F:ServiceStack.Html.HtmlCompressor.PHP_TAG_PATTERN">
