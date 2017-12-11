@@ -179,7 +179,7 @@ namespace ServiceStack.Redis.Tests
             Assert.That(Redis.ContainsKey("key"), Is.False);
         }
 
-        [Explicit("Changes in system clock can break test")]
+        [Ignore("Changes in system clock can break test")]
         [Test]
         public void Can_ExpireAt()
         {

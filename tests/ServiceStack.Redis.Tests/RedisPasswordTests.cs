@@ -2,15 +2,17 @@
 
 namespace ServiceStack.Redis.Tests
 {
-	[TestFixture]
-	public class RedisPasswordTests
-	{
-		[Test, Ignore("slaves and masters")]
-		public void Can_connect_to_Slaves_and_Masters_with_Password()
-		{
-			var factory = new PooledRedisClientManager(
-				readWriteHosts: new[] { "pass@10.0.0.59:6379" },
-				readOnlyHosts: new[] { "pass@10.0.0.59:6380" });
+    [TestFixture]
+    public class RedisPasswordTests
+    {
+
+        [Ignore("Integration")]
+        [Test]
+        public void Can_connect_to_Slaves_and_Masters_with_Password()
+        {
+            var factory = new PooledRedisClientManager(
+                readWriteHosts: new[] { "pass@10.0.0.59:6379" },
+                readOnlyHosts: new[] { "pass@10.0.0.59:6380" });
 
 			using (var readWrite = factory.GetClient())
 			using (var readOnly = factory.GetReadOnlyClient())

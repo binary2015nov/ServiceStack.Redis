@@ -273,11 +273,11 @@ namespace ServiceStack.Redis.Tests.Examples.BestPractice
 	#endregion
 
 
-	[TestFixture, Explicit, Category("Integration")]
-	public class BlogPostBestPractice
-	{
-		readonly RedisClient redisClient = new RedisClient(TestConfig.SingleHost);
-		private IBlogRepository repository;
+    [TestFixture, Ignore("Integration"), Category("Integration")]
+    public class BlogPostBestPractice
+    {
+        readonly RedisClient redisClient = new RedisClient(TestConfig.SingleHost);
+        private IBlogRepository repository;
 
 		[SetUp]
 		public void OnBeforeEachTest()

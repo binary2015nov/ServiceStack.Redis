@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace ServiceStack.Redis.Tests
 {
-    [TestFixture, Explicit]
+    [TestFixture, Ignore("Integration")]
     public class RedisHyperLogTests
     {
         [Test]

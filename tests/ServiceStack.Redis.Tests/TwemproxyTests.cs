@@ -2,7 +2,7 @@
 
 namespace ServiceStack.Redis.Tests
 {
-    [TestFixture, Ignore("Twemproxy")]
+    [TestFixture, Ignore("Integration")]
     public class TwemproxyTests
     {
         [Test]
