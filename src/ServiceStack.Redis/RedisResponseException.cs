@@ -12,8 +12,7 @@
 
 namespace ServiceStack.Redis
 {
-	public class RedisResponseException
-		: RedisException
+	public class RedisResponseException : RedisException
 	{
 		public RedisResponseException(string message)
 			: base(message)
