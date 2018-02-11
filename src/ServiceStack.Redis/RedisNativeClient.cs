@@ -44,6 +44,7 @@ namespace ServiceStack.Redis
 
         private int clientPort;
         private string lastCommand;
+        private SocketException lastSocketException;
 
         internal long deactivatedAtTicks;
         public DateTime? DeactivatedAt
@@ -130,9 +131,15 @@ namespace ServiceStack.Redis
             }
         }
 
-        public bool IsManagedClient
+        internal void EndPipeline()
         {
-            get { return ClientManager != null; }
+            ResetSendBuffer();
+
+            if (Pipeline != null)
+            {
+                Pipeline = null;
+                Interlocked.Increment(ref __requestsPerHour);
+            }
         }
 
         public RedisNativeClient() : this(RedisConfig.DefaultHost, RedisConfig.DefaultPort) { }
@@ -2418,5 +2425,7 @@ namespace ServiceStack.Redis
             sslStream = null;
             socket = null;
         }
+
+        #endregion
     }
 }

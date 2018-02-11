@@ -13,7 +13,6 @@ namespace ServiceStack.Redis
         public RedisAllPurposePipeline(RedisClient redisClient) : base(redisClient)
         {
             Init();
-
         }
 
         protected virtual void Init()

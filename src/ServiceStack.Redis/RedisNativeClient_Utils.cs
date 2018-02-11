@@ -208,7 +208,7 @@ namespace ServiceStack.Redis
             }
             catch (SocketException)
             {
-                log.Error(ErrorConnect.Fmt(Host, Port));
+                Logger.Error(ErrorConnect.Fmt(Host, Port));
                 throw;
             }
         }
@@ -232,7 +232,7 @@ namespace ServiceStack.Redis
                     break;
                 sb.Append((char)c);
             }
-            return StringBuilderCache.ReturnAndFree(sb);
+            return StringBuilderCache.Retrieve(sb);
         }
 
         public bool HasConnected
@@ -259,7 +259,7 @@ namespace ServiceStack.Redis
             }
             catch (SocketException ex)
             {
-                log.Error(ErrorConnect.Fmt(Host, Port));
+                Logger.Error(ErrorConnect.Fmt(Host, Port));
 
                 if (socket != null)
                     socket.Close();
@@ -269,7 +269,7 @@ namespace ServiceStack.Redis
                 DeactivatedAt = DateTime.UtcNow;
                 var message = Host + ":" + Port;
                 var throwEx = new RedisException(message, ex);
-                log.Error(throwEx.Message, ex);
+                Logger.Error(throwEx.Message, ex);
                 throw throwEx;
             }
         }
@@ -321,7 +321,7 @@ namespace ServiceStack.Redis
             }
 
             var throwEx = new RedisResponseException(error);
-            log.Error(error);
+            Logger.Error(error);
             return throwEx;
         }
 
@@ -338,7 +338,7 @@ namespace ServiceStack.Redis
             var throwEx = new RedisRetryableException(string.Format("[{0}] {1}, sPort: {2}, LastCommand: {3}",
                     DateTime.UtcNow.ToString("HH:mm:ss.fff"),
                     error, clientPort, safeLastCommand));
-            log.Error(throwEx.Message);
+            Logger.Error(throwEx.Message);
             throw throwEx;
         }
 
@@ -350,7 +350,7 @@ namespace ServiceStack.Redis
                     clientPort,
                     originalEx != null ? ", Error: " + originalEx.Message + "\n" + originalEx.StackTrace : ""),
                 originalEx ?? lastSocketException);
-            log.Error(throwEx.Message);
+            Logger.Error(throwEx.Message);
             throw throwEx;
         }
 
@@ -385,7 +385,7 @@ namespace ServiceStack.Redis
                     LicenseUtils.AssertValidUsage(LicenseFeature.Redis, QuotaType.RequestsPerHour, __requestsPerHour);
             }
 
-            if (log.IsDebugEnabled && !RedisConfig.DisableVerboseLogging)
+            if (Logger.IsDebugEnabled && !RedisConfig.DisableVerboseLogging)
                 CmdLog(cmdWithBinaryArgs);
 
             //Total command lines count
@@ -609,7 +609,7 @@ namespace ServiceStack.Redis
         {
             DeactivatedAt = DateTime.UtcNow;
             var message = "Exceeded timeout of {0}".Fmt(retryTimeout);
-            log.Error(message);
+            Logger.Error(message);
             return new RedisException(message, originalEx);
         }
 
@@ -622,7 +622,7 @@ namespace ServiceStack.Redis
             if (socketEx == null)
                 return null;
 
-            log.Error("SocketException in SendReceive, retrying...", socketEx);
+            Logger.Error("SocketException in SendReceive, retrying...", socketEx);
             lastSocketException = socketEx;
 
             if (socket != null)
@@ -742,7 +742,7 @@ namespace ServiceStack.Redis
             if (RedisConfig.DisableVerboseLogging)
                 return;
 
-            log.DebugFormat("{0}", string.Format(fmt, args).Trim());
+            Logger.DebugFormat("{0}", string.Format(fmt, args).Trim());
         }
 
         protected void CmdLog(byte[][] args)
@@ -761,13 +761,13 @@ namespace ServiceStack.Redis
                 if (sb.Length > 100)
                     break;
             }
-            this.lastCommand = StringBuilderCache.ReturnAndFree(sb);
+            this.lastCommand = StringBuilderCache.Retrieve(sb);
             if (this.lastCommand.Length > 100)
             {
                 this.lastCommand = this.lastCommand.Substring(0, 100) + "...";
             }
 
-            log.Debug("S: " + this.lastCommand);
+            Logger.Debug("S: " + this.lastCommand);
         }
 
         //Turn Action into Func Hack
@@ -785,7 +785,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log((char)c + s);
 
             if (c == '-')
@@ -800,7 +800,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log((char)c + s);
 
             if (c == '-')
@@ -818,7 +818,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log((char)c + s);
 
             if (c == '-')
@@ -845,7 +845,7 @@ namespace ServiceStack.Redis
 
             var s = ReadLine();
 
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             if (c == '-')
@@ -884,7 +884,7 @@ namespace ServiceStack.Redis
 
         private byte[] ParseSingleLine(string r)
         {
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", r);
             if (r.Length == 0)
                 throw CreateResponseError("Zero length response");
@@ -937,7 +937,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -987,7 +987,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -1026,7 +1026,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
 
             switch (c)
@@ -1068,7 +1068,7 @@ namespace ServiceStack.Redis
                 throw CreateNoMoreDataError();
 
             var s = ReadLine();
-            if (log.IsDebugEnabled)
+            if (Logger.IsDebugEnabled)
                 Log("R: {0}", s);
             if (c == '-')
                 throw CreateResponseError(s.StartsWith("ERR") ? s.Substring(4) : s);
