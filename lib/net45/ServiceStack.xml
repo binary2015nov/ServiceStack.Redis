@@ -80,6 +80,12 @@
             Should UserName or Emails be saved in AuthRepository in LowerCase
             </summary>
         </member>
+        <member name="M:ServiceStack.AuthUserSession.Validate(ServiceStack.IServiceBase,ServiceStack.Auth.IAuthSession,ServiceStack.Auth.IAuthTokens,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Override with Custom Validation logic to Assert if User is allowed to Authenticate. 
+            Returning a non-null response invalidates Authentication with IHttpResult response returned to client.
+            </summary>
+        </member>
         <member name="T:ServiceStack.Auth.IManageApiKeys">
             <summary>
             The Interface Auth Repositories need to implement to support API Keys
@@ -5688,6 +5694,11 @@
             <param name="httpMethod">GET,POST,PUT,DELETE</param>
             <param name="requestDto"></param>
             <returns>Response DTO; non-null will short-circuit execution and return that response</returns>
+        </member>
+        <member name="T:ServiceStack.Web.IServiceRoutes">
+            <summary>
+            Allow the registration of user-defined routes for services
+            </summary>
         </member>
         <member name="T:ServiceStack.Messaging.IMessageHandlerFactory">
             <summary>
